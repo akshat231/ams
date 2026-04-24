@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import logger from "../utils/logger";
 import createConfig from "./utils/init";
 const args = process.argv.slice(2);
