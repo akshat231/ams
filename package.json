@@ -4,14 +4,20 @@
   "description": "Lightweight API metrics gathering and displaying middleware",
   "repository": "https://github.com/akshat231/ams",
   "bugs": "https://github.com/akshat231/ams/issues",
-  "main": "src/index.ts",
+  "main": "dist/src/index.js",
   "bin": {
-    "api-metrics-system": "bin/index.ts"
+    "ams": "dist/bin/index.js"
   },
+  "files": [
+    "dist/",
+    "public/"
+  ],
   "scripts": {
     "dev": "ts-node src/index.ts",
     "test": "ts-node test/index.ts",
-    "cli": "ts-node bin/index.ts"
+    "cli": "ts-node bin/index.ts",
+    "build": "tsc && cp src/utils/ams.json dist/src/utils/ams.json",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "api",
