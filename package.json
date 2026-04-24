@@ -1,6 +1,6 @@
 {
   "name": "api-metrics-system",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "Lightweight API metrics gathering and displaying middleware",
   "repository": "https://github.com/akshat231/ams",
   "bugs": "https://github.com/akshat231/ams/issues",
