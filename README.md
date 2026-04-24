@@ -1,4 +1,4 @@
-# AMS (API Metrics Server)
+# API Metrics System
 
 A lightweight middleware for gathering and displaying API metrics.
 
@@ -12,7 +12,7 @@ A lightweight middleware for gathering and displaying API metrics.
 ## Installation
 
 ```bash
-npm install ams
+npm install api-metrics-system
 ```
 
 ## Configuration
@@ -20,7 +20,7 @@ npm install ams
 Initialize the config file in your project:
 
 ```bash
-npx ams-cli init
+npx api-metrics-system init
 ```
 
 Edit `config/ams.json`:
@@ -42,7 +42,7 @@ Edit `config/ams.json`:
 
 ```typescript
 import express from 'express';
-import { setTracking, startTracking, loadDashboard } from 'ams';
+import { setTracking, startTracking, loadDashboard } from 'api-metrics-system';
 
 const app = express();
 app.use(express.json());
