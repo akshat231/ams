@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ams — metrics</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #16161f;
+      --border: #1e1e2e;
+      --accent: #7c6aff;
+      --accent2: #ff6a6a;
+      --accent3: #6affa0;
+      --accent4: #ffcc6a;
+      --text: #e8e8f0;
+      --text-muted: #5a5a7a;
+      --text-dim: #8888aa;
+      --success: #6affa0;
+      --error: #ff6a6a;
+      --warning: #ffcc6a;
+    }
+
+    :root.light {
+      --bg: #f4f4f8;
+      --surface: #ffffff;
+      --surface2: #eeeef4;
+      --border: #dddde8;
+      --accent: #5b4de8;
+      --text: #0a0a1a;
+      --text-muted: #9090b0;
+      --text-dim: #5a5a7a;
+      --success: #16a34a;
+      --error: #dc2626;
+      --warning: #d97706;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .logo-name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .logo-name span {
+      color: var(--accent);
+    }
+
+    .logo-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+      letter-spacing: 0.03em;
+    }
+
+    .pill:hover { color: var(--text); background: var(--surface2); }
+    .pill.active { background: var(--accent); color: white; }
+
+    .custom-range {
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .custom-range.visible { display: flex; }
+
+    .custom-range input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+    }
+
+    .custom-range input:focus { border-color: var(--accent); }
+
+    .btn-refresh {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-refresh:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-theme {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-theme:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-refresh svg { width: 13px; height: 13px; }
+
+    /* error banner */
+    .error-banner {
+      display: none;
+      background: rgba(255,106,106,0.08);
+      border: 1px solid rgba(255,106,106,0.2);
+      color: var(--error);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    /* stat cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 500px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--card-accent, var(--accent));
+      opacity: 0.6;
+    }
+
+    .stat-card:hover { border-color: var(--card-accent, var(--accent)); }
+    .stat-card.c-error { --card-accent: var(--error); }
+    .stat-card.c-success { --card-accent: var(--success); }
+    .stat-card.c-warning { --card-accent: var(--warning); }
+
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .stat-card.c-error .stat-value { color: var(--error); }
+    .stat-card.c-success .stat-value { color: var(--success); }
+    .stat-card.c-warning .stat-value { color: var(--warning); }
+
+    .stat-unit {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-left: 2px;
+    }
+
+    /* charts grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+
+    .chart-card:hover { border-color: #2a2a3e; }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .chart-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 220px;
+    }
+
+    /* tables */
+    .table-wrap { overflow: hidden; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0 0 10px 0;
+      text-align: left;
+      font-weight: 500;
+    }
+
+    th:last-child { text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+
+    td {
+      padding: 10px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    td:last-child {
+      text-align: right;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .url-cell {
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      line-height: 18px;
+      text-align: center;
+      font-size: 9px;
+      border-radius: 3px;
+      background: var(--surface2);
+      color: var(--text-muted);
+      margin-right: 8px;
+    }
+
+    /* loading state */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,15,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+
+    .loading-overlay.visible { display: flex; }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* applied filter tag */
+    .filter-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-tag span {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      color: var(--accent);
+    }
+
+    /* fade in animation */
+    .fade-in {
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <div class="logo-name">ams</div>
+      <div class="logo-sub">metrics dashboard</div>
+    </div>
+    <div class="controls">
+      <div class="filter-pills">
+        <button class="pill" onclick="setPreset('1h')">1h</button>
+        <button class="pill active" onclick="setPreset('24h')">24h</button>
+        <button class="pill" onclick="setPreset('7d')">7d</button>
+        <button class="pill" onclick="setPreset('30d')">30d</button>
+        <button class="pill" onclick="setPreset('custom')">custom</button>
+      </div>
+      <div class="custom-range" id="customRange">
+        <input type="datetime-local" id="fromInput">
+        <span style="color:var(--text-muted);font-size:11px;">→</span>
+        <input type="datetime-local" id="toInput">
+      </div>
+      <button class="btn-theme" onclick="toggleTheme()" id="themeBtn">☀ light</button>
+      <button class="btn-refresh" onclick="loadMetrics()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        refresh
+      </button>
+    </div>
+  </header>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="filter-tag" id="filterTag" style="display:none">
+    showing
+    <span id="filterFrom">—</span>
+    →
+    <span id="filterTo">—</span>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">total requests</div>
+      <div class="stat-value" id="totalRequests">—</div>
+    </div>
+    <div class="stat-card c-warning">
+      <div class="stat-label">req / min</div>
+      <div class="stat-value" id="requestsPerMin">—</div>
+    </div>
+    <div class="stat-card c-error">
+      <div class="stat-label">error rate</div>
+      <div class="stat-value" id="errorRate">—<span class="stat-unit">%</span></div>
+    </div>
+    <div class="stat-card c-success">
+      <div class="stat-label">success rate</div>
+      <div class="stat-value" id="successRate">—<span class="stat-unit">%</span></div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card fade-in">
+      <div class="chart-header">
+        <div class="chart-title">requests over time</div>
+        <div class="chart-badge" id="hitsTotal">— hits</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="hitsChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card fade-in">
+      <div class="chart-header">
+        <div class="chart-title">status distribution</div>
+        <div class="chart-badge" id="statusCount">— codes</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card fade-in">
+      <div class="chart-header">
+        <div class="chart-title">slowest endpoints</div>
+        <div class="chart-badge">avg ms</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>endpoint</th><th>avg response</th></tr>
+          </thead>
+          <tbody id="slowestTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="chart-card fade-in">
+      <div class="chart-header">
+        <div class="chart-title">most hit endpoints</div>
+        <div class="chart-badge">by count</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>endpoint</th><th>hits</th></tr>
+          </thead>
+          <tbody id="mostHitTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let hitsChart, statusChart;
+  let currentPreset = '24h';
+  const BASE_URL = window.location.origin;
+  const API_URL = `${BASE_URL}/api/v1/metrics`;
+
+  const COLORS = {
+    '200': '#6affa0',
+    '201': '#6affa0',
+    '204': '#6affa0',
+    '301': '#ffcc6a',
+    '302': '#ffcc6a',
+    '400': '#ff9f6a',
+    '401': '#ff6a6a',
+    '403': '#ff6a6a',
+    '404': '#ff6a6a',
+    '500': '#cc4444',
+    '503': '#cc4444',
+  };
+
+  function getStatusColor(status) {
+    return COLORS[String(status)] || '#7c6aff';
+  }
+
+  function setPreset(preset) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    currentPreset = preset;
+    const customRange = document.getElementById('customRange');
+    if (preset === 'custom') {
+      customRange.classList.add('visible');
+    } else {
+      customRange.classList.remove('visible');
+      loadMetrics();
+    }
+  }
+
+  function buildURL() {
+    if (currentPreset && currentPreset !== 'custom') {
+      return `${API_URL}?preset=${currentPreset}`;
+    }
+    const from = document.getElementById('fromInput').value;
+    const to = document.getElementById('toInput').value;
+    if (from && to) {
+      return `${API_URL}?from=${new Date(from).toISOString()}&to=${new Date(to).toISOString()}`;
+    }
+    return `${API_URL}?preset=24h`;
+  }
+
+  function showLoading(v) {
+    document.getElementById('loadingOverlay').classList.toggle('visible', v);
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorBanner');
+    if (msg) { el.textContent = '⚠ ' + msg; el.style.display = 'block'; }
+    else { el.style.display = 'none'; }
+  }
+
+  async function loadMetrics() {
+    showLoading(true);
+    showError(null);
+    try {
+      const res = await fetch(buildURL());
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      renderAll(data);
+    } catch (err) {
+      showError(err.message || 'Failed to fetch metrics');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function renderAll(data) {
+    const total = data.hitsOverTime.reduce((s, b) => s + b.count, 0);
+    const minutes = data.hitsOverTime.length * 60;
+    const rpm = minutes > 0 ? (total / minutes).toFixed(1) : '0';
+
+    document.getElementById('totalRequests').textContent = total.toLocaleString();
+    document.getElementById('requestsPerMin').textContent = rpm;
+    document.getElementById('errorRate').innerHTML = data.errorRate + '<span class="stat-unit">%</span>';
+    document.getElementById('successRate').innerHTML = (100 - data.errorRate).toFixed(2) + '<span class="stat-unit">%</span>';
+    document.getElementById('hitsTotal').textContent = total.toLocaleString() + ' hits';
+    document.getElementById('statusCount').textContent = data.statusDistribution.length + ' codes';
+
+    if (data.appliedFilter) {
+      const fmt = (iso) => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      document.getElementById('filterFrom').textContent = fmt(data.appliedFilter.from);
+      document.getElementById('filterTo').textContent = fmt(data.appliedFilter.to);
+      document.getElementById('filterTag').style.display = 'flex';
+    }
+
+    renderHitsChart(data.hitsOverTime);
+    renderStatusChart(data.statusDistribution);
+    renderSlowestTable(data.slowestEndpoints);
+    renderMostHitTable(data.mostHitEndpoints);
+  }
+
+  function getThemeColors() {
+    const light = document.documentElement.classList.contains('light');
+    return {
+      grid: light ? '#dddde8' : '#1e1e2e',
+      ticks: light ? '#9090b0' : '#5a5a7a',
+      tooltip: light ? '#ffffff' : '#16161f',
+      tooltipBorder: light ? '#dddde8' : '#1e1e2e',
+      tooltipTitle: light ? '#9090b0' : '#8888aa',
+      tooltipBody: light ? '#0a0a1a' : '#e8e8f0',
+      accent: light ? '#5b4de8' : '#7c6aff',
+      gradientTop: light ? 'rgba(91,77,232,0.15)' : 'rgba(124,106,255,0.25)',
+      surface: light ? '#ffffff' : '#111118',
+    }
+  }
+
+  function renderHitsChart(data) {
+    const ctx = document.getElementById('hitsChart').getContext('2d');
+    if (hitsChart) hitsChart.destroy();
+    const t = getThemeColors();
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+    gradient.addColorStop(0, t.gradientTop);
+    gradient.addColorStop(1, 'rgba(124,106,255,0)');
+
+    hitsChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(b => {
+          const d = new Date(b.timestamp);
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }),
+        datasets: [{
+          data: data.map(b => b.count),
+          borderColor: t.accent,
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: t.accent,
+          pointBorderColor: t.surface,
+          pointBorderWidth: 2,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          backgroundColor: t.tooltip,
+          borderColor: t.tooltipBorder,
+          borderWidth: 1,
+          titleColor: t.tooltipTitle,
+          bodyColor: t.tooltipBody,
+          titleFont: { family: 'JetBrains Mono', size: 11 },
+          bodyFont: { family: 'JetBrains Mono', size: 12 },
+          padding: 10,
+        }},
+        scales: {
+          x: { grid: { color: t.grid }, ticks: { color: t.ticks, font: { family: 'JetBrains Mono', size: 10 }, maxTicksLimit: 8 } },
+          y: { beginAtZero: true, grid: { color: t.grid }, ticks: { color: t.ticks, font: { family: 'JetBrains Mono', size: 10 } } }
+        }
+      }
+    });
+  }
+
+  function renderStatusChart(data) {
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    if (statusChart) statusChart.destroy();
+
+    statusChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(b => b.status),
+        datasets: [{
+          data: data.map(b => b.count),
+          backgroundColor: data.map(b => getStatusColor(b.status)),
+          borderColor: '#111118',
+          borderWidth: 3,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: '#8888aa',
+              font: { family: 'JetBrains Mono', size: 11 },
+              padding: 12,
+              boxWidth: 10,
+              boxHeight: 10,
+            }
+          },
+          tooltip: {
+            backgroundColor: '#16161f',
+            borderColor: '#1e1e2e',
+            borderWidth: 1,
+            titleColor: '#8888aa',
+            bodyColor: '#e8e8f0',
+            titleFont: { family: 'JetBrains Mono', size: 11 },
+            bodyFont: { family: 'JetBrains Mono', size: 12 },
+            padding: 10,
+          }
+        }
+      }
+    });
+  }
+
+  function renderSlowestTable(data) {
+    const tbody = document.getElementById('slowestTable');
+    if (!data.length) { tbody.innerHTML = `<tr><td colspan="2" class="empty-state">no data</td></tr>`; return; }
+    tbody.innerHTML = data.slice(0, 6).map((row, i) => `
+      <tr>
+        <td><span class="rank">${i + 1}</span><span class="url-cell">${row.url}</span></td>
+        <td style="color:${row.avgResponseTimeMs > 1000 ? 'var(--error)' : row.avgResponseTimeMs > 500 ? 'var(--warning)' : 'var(--success)'}">${row.avgResponseTimeMs.toLocaleString()} ms</td>
+      </tr>
+    `).join('');
+  }
+
+  function renderMostHitTable(data) {
+    const tbody = document.getElementById('mostHitTable');
+    if (!data.length) { tbody.innerHTML = `<tr><td colspan="2" class="empty-state">no data</td></tr>`; return; }
+    const max = data[0]?.count || 1;
+    tbody.innerHTML = data.slice(0, 6).map((row, i) => `
+      <tr>
+        <td><span class="rank">${i + 1}</span><span class="url-cell">${row.url}</span></td>
+        <td style="color:var(--accent)">${row.count.toLocaleString()}</td>
+      </tr>
+    `).join('');
+  }
+
+  // theme toggle
+  function toggleTheme() {
+    const isLight = document.documentElement.classList.toggle('light');
+    document.getElementById('themeBtn').textContent = isLight ? '☽ dark' : '☀ light';
+    localStorage.setItem('apivault-theme', isLight ? 'light' : 'dark');
+    // re-render charts with new colors
+    if (hitsChart) { hitsChart.destroy(); hitsChart = null; }
+    if (statusChart) { statusChart.destroy(); statusChart = null; }
+    loadMetrics();
+  }
+
+  // restore saved theme
+  if (localStorage.getItem('apivault-theme') === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeBtn').textContent = '☽ dark';
+  }
+
+  // init default datetime inputs
+  const now = new Date();
+  const yesterday = new Date(now - 86400000);
+  document.getElementById('toInput').value = now.toISOString().slice(0, 16);
+  document.getElementById('fromInput').value = yesterday.toISOString().slice(0, 16);
+
+  loadMetrics();
+</script>
+</body>
+</html>

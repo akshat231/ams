@@ -1,0 +1,10 @@
+{
+  "dashboardPort": "4321",
+  "elastic": {
+    "enable": true,
+    "node": "http://localhost:9200",
+    "username": "elastic",
+    "password": "elastic",
+    "index": "ams"
+  }
+}
