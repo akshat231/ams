@@ -6,7 +6,7 @@
   "bugs": "https://github.com/akshat231/ams/issues",
   "main": "dist/src/index.js",
   "bin": {
-    "ams": "dist/bin/index.js"
+    "api-metrics-system": "dist/bin/index.js"
   },
   "files": [
     "dist/",
@@ -16,7 +16,7 @@
     "dev": "ts-node src/index.ts",
     "test": "ts-node test/index.ts",
     "cli": "ts-node bin/index.ts",
-    "build": "tsc && cp src/utils/ams.json dist/src/utils/ams.json",
+    "build": "tsc && copyfiles -u 1 utils/ams.json dist/utils/",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -39,6 +39,7 @@
     "@types/express": "^5.0.6",
     "@types/joi": "^17.2.2",
     "@types/node": "^25.5.0",
+    "copyfiles": "^2.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
