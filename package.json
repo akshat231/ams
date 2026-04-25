@@ -16,7 +16,7 @@
     "dev": "ts-node src/index.ts",
     "test": "ts-node test/index.ts",
     "cli": "ts-node bin/index.ts",
-    "build": "tsc && copyfiles -u 1 utils/ams.json dist/utils/",
+    "build": "tsc && copyfiles -u 1 utils/ams.json dist/src/utils/ && copyfiles -u 0 public/index.html dist/",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
