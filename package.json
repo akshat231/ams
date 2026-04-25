@@ -26,7 +26,7 @@
     "express",
     "elasticsearch"
   ],
-  "author": "",
+  "author": "Akshat Sharma <akshatisthegreat@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",

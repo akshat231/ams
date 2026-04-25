@@ -1,4 +1,5 @@
 # API Metrics System
+[![npm version](https://badge.fury.io/js/api-metrics-system.svg)](https://www.npmjs.com/package/api-metrics-system)
 
 A lightweight middleware for gathering and displaying API metrics.
 
@@ -8,6 +9,10 @@ A lightweight middleware for gathering and displaying API metrics.
 - **Elasticsearch Storage**: Persist metrics to Elasticsearch for querying.
 - **Metrics Dashboard**: Built-in Express dashboard to visualize metrics over time.
 - **CLI Tool**: Quick config initialization.
+
+## Prerequisites
+- Node.js 18+
+- Elasticsearch 8.x running locally or remotely
 
 ## Installation
 
@@ -101,7 +106,7 @@ GET /api/v1/metrics?from=2024-01-01T00:00:00Z&to=2024-01-02T00:00:00Z
 ## CLI Commands
 
 ```bash
-ams-cli init     # Initialize config/ams.json in current directory
+api-metrics-system init     # Initialize config/ams.json in current directory
 ```
 
 ## License
