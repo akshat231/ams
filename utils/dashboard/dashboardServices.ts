@@ -13,7 +13,7 @@ const fetchAPIMetricsV1 = async (queryFilter: MetricsQuery) => {
     const data = await dashboardRepository.getMetricsV1(queryFilter)
     return data
   } catch (error) {
-    logger.error("[apivault] Failed to fetch metrics:", error)
+    logger.error("[ams] Failed to fetch metrics:", error)
     return { error: "Failed to fetch metrics" }
   }
 };

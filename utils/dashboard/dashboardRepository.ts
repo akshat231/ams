@@ -161,7 +161,7 @@ const getMetricsV1 = async (filter: MetricsQuery) => {
         total > 0 ? parseFloat(((errors / total) * 100).toFixed(2)) : 0,
     };
   } catch (error) {
-    logger.error("[apivault] Error fetching metrics:", error);
+    logger.error("[ams] Error fetching metrics:", error);
     throw error;
   }
 };

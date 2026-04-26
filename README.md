@@ -52,18 +52,19 @@ import { setTracking, startTracking, loadDashboard } from 'api-metrics-system';
 const app = express();
 app.use(express.json());
 
-// Initialize clients (call once at startup)
-await startTracking();
-
-// Optional: start the metrics dashboard
-await loadDashboard();
 
 // Use the middleware on routes you want to track
 app.get('/api/users', setTracking, (req, res) => {
   res.json({ users: [] });
 });
 
-app.listen(3000);
+app.listen(3000, async() =>{
+  // Initialize clients (call once at startup)
+    await startTracking();
+
+  // Optional: start the metrics dashboard
+    await loadDashboard();
+});
 ```
 
 ## Metrics Dashboard
