@@ -83,6 +83,12 @@ const getMetricsV1 = async (filter: MetricsQuery) => {
               avg_response_time: {
                 avg: { field: "responseTimeMs" },
               },
+              response_time_percentiles: {
+                percentiles: {
+                  field: "responseTimeMs",
+                  percents: [50, 95, 99],
+                },
+              },
             },
           },
         },
@@ -148,10 +154,16 @@ const getMetricsV1 = async (filter: MetricsQuery) => {
         count: b.doc_count,
       })),
       slowestEndpoints: slowestBuckets
-        .map((b: any) => ({
-          url: b.key,
-          avgResponseTimeMs: Math.round(b.avg_response_time.value ?? 0),
-        }))
+        .map((b: any) => {
+          const pct = b.response_time_percentiles.values;
+          return {
+            url: b.key,
+            avgResponseTimeMs: Math.round(b.avg_response_time.value ?? 0),
+            p50: Math.round(pct["50.0"] ?? 0),
+            p95: Math.round(pct["95.0"] ?? 0),
+            p99: Math.round(pct["99.0"] ?? 0),
+          };
+        })
         .sort((a: any, b: any) => b.avgResponseTimeMs - a.avgResponseTimeMs),
       mostHitEndpoints: mostHitBuckets.map((b: any) => ({
         url: b.key,
@@ -161,7 +173,6 @@ const getMetricsV1 = async (filter: MetricsQuery) => {
         total > 0 ? parseFloat(((errors / total) * 100).toFixed(2)) : 0,
     };
   } catch (error) {
-    logger.error("[ams] Error fetching metrics:", error);
     throw error;
   }
 };

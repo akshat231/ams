@@ -37,6 +37,12 @@ app.get('/ping', setTracking, (req: Request, res: Response) => {
     });
 });
 
+app.get('/wrongping', setTracking, (req: Request, res: Response) => {
+    return res.status(400).json({
+    error: 'Bad Request',
+  });
+})
+
 app.listen(5000, () => {
     console.log('Server running on port 5000');
 });

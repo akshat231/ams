@@ -1,4 +1,4 @@
-import { clientNames, indexNames } from "./typeDefinitions";
+import { clientNames, indexNames, trackingConfig } from "./typeDefinitions";
 
 let clients: clientNames = {
   elastic: null,
@@ -6,5 +6,9 @@ let clients: clientNames = {
 let indices: indexNames = {
   elasticIndex: "ams",
 };
+let trackingSettings: trackingConfig = {
+  batchSize: 100,
+  failureThreshold: 10,
+};
 
-export { clients, indices };
+export { clients, indices, trackingSettings };

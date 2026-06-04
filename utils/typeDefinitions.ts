@@ -33,10 +33,15 @@ type clientNames = {
   elastic: Client | null
 }
 
+type trackingConfig = {
+  batchSize: number;
+  failureThreshold: number;
+}
+
 type MetricsQuery = {
   preset?: "1h" | "24h" | "7d" | "30d"
   from?: string
   to?: string
 }
 
-export type { logPayload, elasticConfig, indexNames, clientNames, MetricsQuery };
+export type { logPayload, elasticConfig, indexNames, clientNames, MetricsQuery, trackingConfig };

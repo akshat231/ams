@@ -1,4 +1,6 @@
 {
+  "batchSize": 100,
+  "failureThreshold": 10,
   "dashboardPort": "4321",
   "elastic": {
     "enable": true,

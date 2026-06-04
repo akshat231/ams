@@ -2,6 +2,7 @@ import logger from "./logger";
 import { connectElasticDB } from "./elastic";
 import { elasticConfig, clientNames, indexNames } from "./typeDefinitions";
 import { readConfig } from "./fileRead";
+import { trackingSettings } from "./constant";
 
 const connectElastic = async (config: elasticConfig) => {
   try {
@@ -30,9 +31,11 @@ const getAllClients = async () => {
       indexObject.elasticIndex = index;
       clientObject.elastic = client;
     }
+    trackingSettings.batchSize = configData["batchSize"] ?? 100;
+    trackingSettings.failureThreshold = configData["failureThreshold"] ?? 10;
     return { clientObject, indexObject };
   } catch (error) {
-    logger.error("Error in starting clients: ", error);
+    logger.error(`Error in starting clients: ${error}`);
     return  { clientObject, indexObject }
   }
 };
