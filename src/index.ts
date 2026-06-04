@@ -74,7 +74,7 @@ const startTracking = async () => {
       process.exit(0);
     });
   } catch (error) {
-    logger.error("Error occurred in configuring the tracking: ", error);
+    logger.error(`Error occurred in configuring the tracking: ${error}`);
   }
 };
 

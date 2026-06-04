@@ -11,6 +11,7 @@ const connectElasticDB = async (config:elasticConfig) => {
             password: config.password
         }
     })
+    await client.info();
     return client;
   } catch (error) {
     throw error;

@@ -35,7 +35,7 @@ const getAllClients = async () => {
     trackingSettings.failureThreshold = configData["failureThreshold"] ?? 10;
     return { clientObject, indexObject };
   } catch (error) {
-    logger.error("Error in starting clients: ", error);
+    logger.error(`Error in starting clients: ${error}`);
     return  { clientObject, indexObject }
   }
 };
