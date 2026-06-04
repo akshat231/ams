@@ -543,7 +543,7 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>endpoint</th><th>avg response</th></tr>
+            <tr><th>endpoint</th><th>avg</th><th>p50</th><th>p95</th><th>p99</th></tr>
           </thead>
           <tbody id="slowestTable"></tbody>
         </table>
@@ -779,11 +779,14 @@
 
   function renderSlowestTable(data) {
     const tbody = document.getElementById('slowestTable');
-    if (!data.length) { tbody.innerHTML = `<tr><td colspan="2" class="empty-state">no data</td></tr>`; return; }
+    if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" class="empty-state">no data</td></tr>`; return; }
     tbody.innerHTML = data.slice(0, 6).map((row, i) => `
       <tr>
         <td><span class="rank">${i + 1}</span><span class="url-cell">${row.url}</span></td>
-        <td style="color:${row.avgResponseTimeMs > 1000 ? 'var(--error)' : row.avgResponseTimeMs > 500 ? 'var(--warning)' : 'var(--success)'}">${row.avgResponseTimeMs.toLocaleString()} ms</td>
+        <td style="color:${row.avgResponseTimeMs > 1000 ? 'var(--error)' : row.avgResponseTimeMs > 500 ? 'var(--warning)' : 'var(--success)'}">${row.avgResponseTimeMs.toLocaleString()}</td>
+        <td>${(row.p50 ?? 0).toLocaleString()}</td>
+        <td style="color:${row.p95 > 1000 ? 'var(--error)' : row.p95 > 500 ? 'var(--warning)' : 'var(--text-dim)'}">${(row.p95 ?? 0).toLocaleString()}</td>
+        <td style="color:${row.p99 > 1000 ? 'var(--error)' : row.p99 > 500 ? 'var(--warning)' : 'var(--text-dim)'}">${(row.p99 ?? 0).toLocaleString()}</td>
       </tr>
     `).join('');
   }

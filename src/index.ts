@@ -1,18 +1,55 @@
 import { Request, Response, NextFunction } from "express";
 import logger from "../utils/logger";
-import { logPayload, indexNames, clientNames } from "../utils/typeDefinitions";
+import { logPayload } from "../utils/typeDefinitions";
 import { getAllClients } from "../utils/connectDB";
-import { ingestElastic } from "../utils/elastic";
-import { clients, indices } from "../utils/constant";
+import { clients, indices, trackingSettings } from "../utils/constant";
 import { spinUpExpressApp } from "../utils/dashboard/dashboardRoute";
 
-const pushMetrics = async (payload: logPayload) => {
+const MAX_RETRIES = 3;
+const BACKOFF_MS = 2000;
+
+interface RetryableBatch {
+  docs: logPayload[];
+  attempts: number;
+}
+
+const metricsBuffer: RetryableBatch[] = [];
+let isFlushing = false;
+let flushInterval: NodeJS.Timeout | null = null;
+let totalFailures = 0;
+
+const flushMetrics = async () => {
+  if (isFlushing || metricsBuffer.length === 0 || !clients.elastic) return;
+  isFlushing = true;
+
+  const batch = metricsBuffer.shift() as RetryableBatch;
+
   try {
-    if (clients.elastic !== null) {
-      await ingestElastic(payload, clients.elastic, indices.elasticIndex);
+    const body: any[] = [];
+    for (const doc of batch.docs) {
+      body.push({ index: { _index: indices.elasticIndex } });
+      body.push(doc);
+    }
+    const resp = await clients.elastic.bulk({ body });
+    if (resp.errors) {
+      const errored = resp.items.filter((i: any) => i.index?.error);
+      logger.error(`Bulk flush: ${errored.length}/${batch.docs.length} failed`);
+    } else {
+      totalFailures = 0;
+      logger.debug(`Flushed ${batch.docs.length} metrics to Elasticsearch`);
     }
   } catch (error) {
-    throw error;
+    if (batch.attempts < MAX_RETRIES) {
+      batch.attempts++;
+      const delay = BACKOFF_MS * Math.pow(2, batch.attempts - 1);
+      logger.warn(`Flush failed (attempt ${batch.attempts}/${MAX_RETRIES}), retrying in ${delay}ms`);
+      setTimeout(() => metricsBuffer.push(batch), delay);
+    } else {
+      logger.error(`Dropping ${batch.docs.length} metrics after ${MAX_RETRIES} failed attempts`);
+    }
+    logger.error("Failed to flush metrics buffer:", error);
+  } finally {
+    isFlushing = false;
   }
 };
 
@@ -21,8 +58,23 @@ const startTracking = async () => {
     const clientInfo = await getAllClients();
     clients.elastic = clientInfo.clientObject.elastic;
     indices.elasticIndex = clientInfo.indexObject.elasticIndex;
+    if (flushInterval) clearInterval(flushInterval);
+    flushInterval = setInterval(flushMetrics, 5000);
+
+    process.on("SIGTERM", async () => {
+      logger.info("SIGTERM received — flushing remaining metrics");
+      await flushMetrics();
+      if (flushInterval) clearInterval(flushInterval);
+      process.exit(0);
+    });
+    process.on("SIGINT", async () => {
+      logger.info("SIGINT received — flushing remaining metrics");
+      await flushMetrics();
+      if (flushInterval) clearInterval(flushInterval);
+      process.exit(0);
+    });
   } catch (error) {
-    logger.error("Error occured in configuring the tracking: ", error);
+    logger.error("Error occurred in configuring the tracking: ", error);
   }
 };
 
@@ -49,16 +101,31 @@ const setTracking = async (req: Request, res: Response, next: NextFunction) => {
         params: Object.keys(req.params || {}).length ? req.params : undefined,
         body: req.body && Object.keys(req.body).length ? req.body : undefined,
       };
-      pushMetrics(payload).catch((err) =>
-        logger.error("Failed to push metrics:", err),
-      );
+      metricsBuffer.push({ docs: [payload], attempts: 0 });
+
+      if (res.statusCode >= 400) {
+        totalFailures++;
+        if (totalFailures >= trackingSettings.failureThreshold) {
+          logger.warn(`${totalFailures} total failures — flushing buffer immediately`);
+          totalFailures = 0;
+          flushMetrics().catch((err) =>
+            logger.error("Failed to flush metrics:", err),
+          );
+        }
+      }
+
+      if (metricsBuffer.length >= trackingSettings.batchSize) {
+        flushMetrics().catch((err) =>
+          logger.error("Failed to flush metrics:", err),
+        );
+      }
     });
     next();
   } catch (error: unknown) {
     if (error instanceof Error) {
-      logger.error("Error occured: ", error.message);
+      logger.error("Error occurred: ", error.message);
     } else {
-      logger.error("error occured: ", error);
+      logger.error("error occurred: ", error);
     }
     next();
   }
